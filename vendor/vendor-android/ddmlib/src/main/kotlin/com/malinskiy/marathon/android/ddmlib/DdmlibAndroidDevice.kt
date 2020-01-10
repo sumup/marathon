@@ -24,6 +24,7 @@ import com.malinskiy.marathon.android.exception.CommandRejectedException
 import com.malinskiy.marathon.android.exception.InvalidSerialConfiguration
 import com.malinskiy.marathon.android.exception.TransferException
 import com.malinskiy.marathon.android.executor.listeners.AndroidTestRunListener
+import com.malinskiy.marathon.android.executor.listeners.CodeCoverageListener
 import com.malinskiy.marathon.android.executor.listeners.CompositeTestRunListener
 import com.malinskiy.marathon.android.executor.listeners.DebugTestRunListener
 import com.malinskiy.marathon.android.executor.listeners.LogCatListener
@@ -292,12 +293,17 @@ class DdmlibAndroidDevice(
         val recorderListener = selectRecorderType(preferableRecorderType, features)?.let { feature ->
             prepareRecorderListener(feature, fileManager, devicePoolId, attachmentProviders)
         } ?: NoOpTestRunListener()
+        val coverageListener = when (configuration.isCodeCoverageEnabled) {
+            true -> CodeCoverageListener(this, devicePoolId, fileManager, testBatch)
+            false -> NoOpTestRunListener()
+        }
 
         val logCatListener = LogCatListener(this, devicePoolId, LogWriter(fileManager))
             .also { attachmentProviders.add(it) }
 
         return CompositeTestRunListener(
             listOf(
+                coverageListener,
                 recorderListener,
                 logCatListener,
                 TestRunResultsListener(testBatch, this, deferred, timer, attachmentProviders),
